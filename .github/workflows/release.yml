@@ -1,0 +1,55 @@
+name: Build APK on release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: stable
+
+      - name: Enable Android (legacy embedding) if needed
+        run: flutter config --no-analytics
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build release APK (arm64)
+        run: flutter build apk --release --target-platform android-arm64
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: DoomClock ${{ github.ref_name }}
+          body: |
+            Automated build from tag `${{ github.ref_name }}`.
+
+            ## What's inside
+            - Arm64 Android APK (`app-release.apk`).
+
+            ## Install
+            Download the APK below and install it on your Android device.
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+          draft: false
+          prerelease: false
